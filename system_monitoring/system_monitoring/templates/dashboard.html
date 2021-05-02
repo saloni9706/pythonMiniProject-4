@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    
+    
+    <script src="{% static 'js/echarts.js' %}"></script>
+    <script type="text/javascript">
+        let received_data = null;
+    </script>
+</head>
+<body>
+    <div id="cpu" style="width: 600px;height:300px;">
+       <script> 
+        
+
+        CPUChart = echarts.init(document.getElementById('cpu'));
+
+        cpu_chart = {
+            legend:{
+                data:[]
+            },
+            title:{
+                text:"CPU"
+            },
+            xAxis: {
+                type: 'category',
+                data: []
+            },
+            yAxis: {
+                type: 'value', 
+                min:0, 
+                max:100
+            },
+            series: []  
+        };
+
+
+        function populateData(received_data){
+            if(received_data == null){return;}
+            cpu_chart.xAxis.data.push(received_data["time"]);
+            series_created = false
+            if(cpu_chart.series.length > 0){
+                series_created = true
+            }
+            for (const [key, value] of Object.entries(received_data["cpu"])) {
+                if(!series_created){
+                    temp_obj = {'name':key, 'type': 'line', 'data':[value]};
+                    cpu_chart.series.push(temp_obj);
+                }
+                else{
+                    for(i = 0; i < cpu_chart.series.length; ++i){
+                        if(cpu_chart.series[i]["name"] == key){
+                            cpu_chart.series[i].data.push(value);
+                            break;
+                        }
+                    }
+                }
+
+
+            }
+            CPUChart.setOption(cpu_chart);
+        }
+        
+        window.setInterval(function () {
+            socket = new WebSocket("ws://localhost:8765");
+            socket.onmessage = function(event) {
+              populateData(JSON.parse(event.data));
+            };
+            socket.onopen = function(event){
+                socket.send("");
+            }
+        }, 6000);
+    </script>
+    
+</body>
+</html>
